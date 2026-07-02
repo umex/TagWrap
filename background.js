@@ -29,7 +29,7 @@ async function rebuildContextMenus() {
   for (const tag of directTags) {
     chrome.contextMenus.create({
       id: `wrap::${tag}`,
-      title: `Wrap with <${tag}>`,
+      title: `<${tag}>`,
       contexts: ["selection"]
     });
   }
@@ -40,7 +40,7 @@ async function rebuildContextMenus() {
 
     chrome.contextMenus.create({
       id: parentId,
-      title: "More XML tags ▶",
+      title: "More XML tags ",
       contexts: ["selection"]
     });
 
