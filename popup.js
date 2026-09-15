@@ -14,9 +14,16 @@ const DEFAULT_TAGS = [
 ];
 
 let tags = [];
+let dragFromIndex = null;
 
 const listEl = () => document.getElementById("tag-list");
 const inputEl = () => document.getElementById("new-tag");
+
+function clearDropTarget() {
+  listEl().querySelectorAll(".tag-item.drop-target").forEach((el) => {
+    el.classList.remove("drop-target");
+  });
+}
 
 function sanitizeTag(raw) {
   if (!raw) return "";
@@ -67,40 +74,45 @@ function render() {
     const controls = document.createElement("div");
     controls.className = "controls";
 
-    // Move up
-    const upBtn = document.createElement("button");
-    upBtn.textContent = "↑";
-    upBtn.title = "Move up";
-    upBtn.disabled = index === 0;
-    upBtn.onclick = () => {
-      const copy = [...tags];
-      [copy[index - 1], copy[index]] = [copy[index], copy[index - 1]];
-      saveTags(copy);
-    };
+    row.draggable = true;
+    row.dataset.index = String(index);
+    row.title = "Drag to reorder";
 
-    // Move down
-    const downBtn = document.createElement("button");
-    downBtn.textContent = "↓";
-    downBtn.title = "Move down";
-    downBtn.disabled = index === tags.length - 1;
-    downBtn.onclick = () => {
-      const copy = [...tags];
-      [copy[index], copy[index + 1]] = [copy[index + 1], copy[index]];
-      saveTags(copy);
-    };
+    row.addEventListener("dragstart", (e) => {
+      if (!row.draggable) {
+        e.preventDefault();
+        return;
+      }
+      dragFromIndex = index;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", tag);
+    });
 
-    // Delete
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging");
+      clearDropTarget();
+      dragFromIndex = null;
+    });
+
     const delBtn = document.createElement("button");
     delBtn.textContent = "×";
     delBtn.className = "danger";
     delBtn.title = "Remove tag";
+    delBtn.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+      row.draggable = false;
+      const restore = () => {
+        row.draggable = true;
+      };
+      window.addEventListener("mouseup", restore, { once: true });
+    });
     delBtn.onclick = () => {
+      row.draggable = true;
       const copy = tags.filter((_, i) => i !== index);
       saveTags(copy);
     };
 
-    controls.appendChild(upBtn);
-    controls.appendChild(downBtn);
     controls.appendChild(delBtn);
 
     row.appendChild(badge);
@@ -151,6 +163,36 @@ function setupReset() {
   };
 }
 
+function setupDragDrop() {
+  const container = listEl();
+
+  container.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const row = e.target.closest(".tag-item");
+    clearDropTarget();
+    if (row && !row.classList.contains("dragging")) {
+      row.classList.add("drop-target");
+    }
+  });
+
+  container.addEventListener("dragleave", (e) => {
+    if (!container.contains(e.relatedTarget)) {
+      clearDropTarget();
+    }
+  });
+
+  container.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const row = e.target.closest(".tag-item");
+    clearDropTarget();
+    if (!row || dragFromIndex == null) return;
+    const toIndex = Number(row.dataset.index);
+    if (Number.isNaN(toIndex) || toIndex === dragFromIndex) return;
+    saveTags(moveTag(tags, dragFromIndex, toIndex));
+  });
+}
+
 function load() {
   chrome.storage.sync.get({ tags: DEFAULT_TAGS }, (data) => {
     tags = Array.isArray(data.tags) && data.tags.length ? [...data.tags] : [...DEFAULT_TAGS];
@@ -172,6 +214,7 @@ function init() {
   load();
   setupAdd();
   setupReset();
+  setupDragDrop();
   setupGlobalKeys();
 
   // Keep in sync if storage changes from elsewhere

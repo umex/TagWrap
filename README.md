@@ -12,7 +12,7 @@ Fast, minimal Manifest V3 extension. Right-click selected text and instantly wra
 ## Settings (click the extension icon)
 
 - Add / remove tags freely
-- Drag order with ↑ ↓ buttons
+- Drag tags to reorder
 - **Order is important**:
   - Positions 1–3 → appear as direct context menu items
   - Positions 4–8 → appear inside the "More XML tags" submenu
