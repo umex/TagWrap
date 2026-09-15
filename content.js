@@ -44,35 +44,29 @@
       return true;
     }
 
-    // === Regular DOM selection ===
+    // === Regular DOM selection (preserve existing formatting) ===
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return false;
 
     const range = sel.getRangeAt(0);
-    const selectedText = range.toString();
+    if (range.collapsed) return false;
 
-    if (!selectedText) return false;
-
-    const wrapped = `<${cleanTag}>${selectedText}</${cleanTag}>`;
+    const doc = range.startContainer.ownerDocument || document;
+    const htmlSnapshot = serializeWrappedHtml(doc, range.cloneContents(), cleanTag);
 
     try {
-      range.deleteContents();
+      const endNode = wrapRangeWithTag(range, cleanTag);
 
-      const textNode = document.createTextNode(wrapped);
-      range.insertNode(textNode);
-
-      // Place caret after the inserted wrapper
       sel.removeAllRanges();
       const afterRange = document.createRange();
-      afterRange.setStartAfter(textNode);
+      afterRange.setStartAfter(endNode);
       afterRange.collapse(true);
       sel.addRange(afterRange);
 
       return true;
     } catch (err) {
-      // Last resort for stubborn editors
       try {
-        document.execCommand("insertText", false, wrapped);
+        document.execCommand("insertHTML", false, htmlSnapshot);
         return true;
       } catch (_) {
         return false;

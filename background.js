@@ -91,7 +91,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     try {
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ["content.js"]
+        files: ["wrap-selection.js", "content.js"]
       });
 
       // Give the script a moment to register its listener
