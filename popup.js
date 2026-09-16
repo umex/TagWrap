@@ -15,6 +15,9 @@ const DEFAULT_TAGS = [
 
 let tags = [];
 let dragFromIndex = null;
+let dragPointerX = null;
+let dragPointerY = null;
+let autoScrollRaf = null;
 
 const listEl = () => document.getElementById("tag-list");
 const inputEl = () => document.getElementById("new-tag");
@@ -91,6 +94,7 @@ function render() {
 
     row.addEventListener("dragend", () => {
       row.classList.remove("dragging");
+      stopDragAutoScroll();
       clearDropTarget();
       dragFromIndex = null;
     });
@@ -138,6 +142,8 @@ function addTag() {
   saveTags(copy);
   inputEl().value = "";
   inputEl().focus();
+  const last = listEl().lastElementChild;
+  if (last) last.scrollIntoView({ block: "nearest" });
 }
 
 function setupAdd() {
@@ -163,8 +169,59 @@ function setupReset() {
   };
 }
 
+function stopDragAutoScroll() {
+  dragPointerX = null;
+  dragPointerY = null;
+  if (autoScrollRaf != null) {
+    cancelAnimationFrame(autoScrollRaf);
+    autoScrollRaf = null;
+  }
+}
+
+function highlightDropTargetAtPoint(x, y) {
+  const container = listEl();
+  const el = document.elementFromPoint(x, y);
+  const row = el && el.closest ? el.closest(".tag-item") : null;
+  clearDropTarget();
+  if (row && container.contains(row) && !row.classList.contains("dragging")) {
+    row.classList.add("drop-target");
+  }
+}
+
+function tickDragAutoScroll() {
+  if (dragFromIndex == null || dragPointerY == null) {
+    autoScrollRaf = null;
+    return;
+  }
+
+  const moved = applyDragAutoScroll(listEl(), dragPointerY);
+  if (moved && dragPointerX != null) {
+    highlightDropTargetAtPoint(dragPointerX, dragPointerY);
+  }
+
+  autoScrollRaf = requestAnimationFrame(tickDragAutoScroll);
+}
+
+function trackDragPointer(e) {
+  if (dragFromIndex == null) return;
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  dragPointerX = e.clientX;
+  dragPointerY = e.clientY;
+  if (autoScrollRaf == null) {
+    autoScrollRaf = requestAnimationFrame(tickDragAutoScroll);
+  }
+}
+
 function setupDragDrop() {
   const container = listEl();
+
+  document.addEventListener("dragover", trackDragPointer);
+  document.addEventListener("dragend", () => {
+    stopDragAutoScroll();
+    clearDropTarget();
+    dragFromIndex = null;
+  });
 
   container.addEventListener("dragover", (e) => {
     e.preventDefault();
@@ -184,6 +241,7 @@ function setupDragDrop() {
 
   container.addEventListener("drop", (e) => {
     e.preventDefault();
+    stopDragAutoScroll();
     const row = e.target.closest(".tag-item");
     clearDropTarget();
     if (!row || dragFromIndex == null) return;

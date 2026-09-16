@@ -13,8 +13,12 @@
       --muted: #a1a1aa;
       --accent: #10b981;
     }
+    html, body {
+      overflow: hidden;
+    }
     body {
       width: 320px;
+      max-height: 580px;
       margin: 0;
       padding: 14px 16px 16px;
       background: var(--bg);
@@ -45,8 +49,21 @@
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 8px;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      max-height: 300px;
       margin-bottom: 10px;
+    }
+    .tag-list::-webkit-scrollbar {
+      width: 8px;
+    }
+    .tag-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .tag-list::-webkit-scrollbar-thumb {
+      background: #52525b;
+      border-radius: 4px;
     }
     .tag-item {
       display: flex;
@@ -203,6 +220,7 @@
   <div class="footer">Changes are saved automatically</div>
 
   <script src="tag-order.js"></script>
+  <script src="drag-auto-scroll.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "TagWrap",
   "short_name": "TagWrap",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Right-click to instantly wrap selected text with custom XML tags directly in the page. Configure your tags via the extension popup.",
   "author": "OMinus",
   "icons": {
