@@ -4,8 +4,9 @@ Fast, minimal Manifest V3 extension. Right-click selected text and instantly wra
 
 ## How it works now
 
-- Right-click any selection → see up to **3 direct** "Wrap with `<tag>`" options.
-- A **"More XML tags"** submenu contains the **next 5** tags.
+- Right-click any selection → see the tags you set to **direct**.
+- A **"More XML tags"** submenu contains the tags you set to **submenu**.
+- Tags set to **extra** stay in settings and are hidden from the context menu.
 - Choosing any item **immediately replaces** the selected text with `<tag>…</tag>` on the page.
 - Click the extension icon (or puzzle piece) to open **settings** and manage your tags.
 
@@ -13,9 +14,9 @@ Fast, minimal Manifest V3 extension. Right-click selected text and instantly wra
 
 - Add / remove tags freely
 - Drag tags to reorder
-- **Order is important**:
-  - Positions 1–3 → appear as direct context menu items
-  - Positions 4–8 → appear inside the "More XML tags" submenu
+- Click a tag's badge to cycle **direct → submenu → extra → direct**.
+- Choose any number of tags for each placement. Dragging changes their order within each menu without changing their placement.
+- Existing tags keep their previous placements; newly added tags start as **extra**.
 - Changes save automatically and update the right-click menu instantly.
 
 ## Default tags (you can change them)
@@ -41,7 +42,7 @@ No data ever leaves your browser.
 ## Tips
 
 - Works on most normal pages, textareas, and many contenteditable areas (ChatGPT, Claude, docs, etc.).
-- Reorder tags in settings until your most-used ones are in the first three positions.
+- Set your most-used tags to **direct** and drag them into your preferred order.
 - Tags are lower-cased and cleaned automatically.
 
 Built for people who wrap things in `<instruction>`, `<error>`, `<context>` etc. all day.

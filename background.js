@@ -1,6 +1,7 @@
 // background.js — XMLWrap (Manifest V3 Service Worker)
 // Dynamic context menu based on user settings.
 // On menu click → tell the page to wrap + replace the selection in-place.
+importScripts("tag-placement.js");
 
 const DEFAULT_TAGS = [
   "error",
@@ -14,18 +15,18 @@ const DEFAULT_TAGS = [
 ];
 
 // Rebuilds the entire context menu from the current tag list in storage.
-// First 3 tags → top-level items
-// Next 5 tags → inside a "More XML tags" submenu
+// Each tag has its own direct, submenu, or extra placement.
 async function rebuildContextMenus() {
   await chrome.contextMenus.removeAll();
 
-  const data = await chrome.storage.sync.get({ tags: DEFAULT_TAGS });
-  const tags = Array.isArray(data.tags) && data.tags.length > 0 ? data.tags : DEFAULT_TAGS;
+  const data = await chrome.storage.sync.get({ tags: DEFAULT_TAGS, tagPlacements: null });
+  const tags = Array.isArray(data.tags) ? data.tags : DEFAULT_TAGS;
+  const placements = normalizeTagPlacements(tags, data.tagPlacements);
 
-  const directTags = tags.slice(0, 3);
-  const submenuTags = tags.slice(3, 8); // up to 5 more
+  const directTags = tags.filter(tag => placements[tag] === "direct");
+  const submenuTags = tags.filter(tag => placements[tag] === "submenu");
 
-  // Direct top-level items (first 3)
+  // Direct top-level items
   for (const tag of directTags) {
     chrome.contextMenus.create({
       id: `wrap::${tag}`,
@@ -66,8 +67,8 @@ chrome.runtime.onStartup?.addListener(() => {
 
 // React to settings changes immediately
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "sync" && changes.tags) {
-    rebuildContextMenus();
+  if (area === "sync" && (changes.tags || changes.tagPlacements)) {
+    return rebuildContextMenus();
   }
 });
 

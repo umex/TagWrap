@@ -14,6 +14,7 @@ const DEFAULT_TAGS = [
 ];
 
 let tags = [];
+let tagPlacements = {};
 let dragFromIndex = null;
 let dragPointerX = null;
 let dragPointerY = null;
@@ -33,9 +34,10 @@ function sanitizeTag(raw) {
   return raw.trim().replace(/[<>\/\s]/g, "").toLowerCase();
 }
 
-function saveTags(newTags) {
+function saveTags(newTags, placements = tagPlacements) {
   tags = newTags;
-  chrome.storage.sync.set({ tags: newTags });
+  tagPlacements = normalizeTagPlacements(tags, placements);
+  chrome.storage.sync.set({ tags: newTags, tagPlacements });
   render();
 }
 
@@ -57,18 +59,28 @@ function render() {
     const row = document.createElement("div");
     row.className = "tag-item";
 
-    // Badge showing position type
-    const badge = document.createElement("span");
+    // Click to choose where this tag appears, independently of its order.
+    const badge = document.createElement("button");
+    badge.type = "button";
     badge.className = "badge";
-    if (index < 3) {
-      badge.textContent = "direct";
+    const placement = tagPlacements[tag];
+    badge.textContent = placement;
+    const nextPlacement = { direct: "submenu", submenu: "extra", extra: "direct" }[placement];
+    badge.title = `Change to ${nextPlacement}`;
+    badge.setAttribute("aria-label", `${tag}: ${placement}. Change to ${nextPlacement}`);
+    if (placement === "direct") {
       badge.style.background = "#052e16";
       badge.style.color = "#4ade80";
-    } else if (index < 8) {
-      badge.textContent = "submenu";
-    } else {
-      badge.textContent = "extra";
     }
+    badge.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+      row.draggable = false;
+      window.addEventListener("mouseup", () => { row.draggable = true; }, { once: true });
+    });
+    badge.onclick = () => {
+      saveTags(tags, { ...tagPlacements, [tag]: nextPlacement });
+      listEl().children[index].querySelector(".badge").focus();
+    };
 
     const name = document.createElement("span");
     name.className = "name";
@@ -164,7 +176,7 @@ function setupReset() {
   const resetBtn = document.getElementById("reset-btn");
   resetBtn.onclick = () => {
     if (confirm("Reset tags to the default list?")) {
-      saveTags([...DEFAULT_TAGS]);
+      saveTags([...DEFAULT_TAGS], null);
     }
   };
 }
@@ -252,8 +264,9 @@ function setupDragDrop() {
 }
 
 function load() {
-  chrome.storage.sync.get({ tags: DEFAULT_TAGS }, (data) => {
-    tags = Array.isArray(data.tags) && data.tags.length ? [...data.tags] : [...DEFAULT_TAGS];
+  chrome.storage.sync.get({ tags: DEFAULT_TAGS, tagPlacements: null }, (data) => {
+    tags = Array.isArray(data.tags) ? [...data.tags] : [...DEFAULT_TAGS];
+    tagPlacements = normalizeTagPlacements(tags, data.tagPlacements);
     render();
   });
 }
@@ -277,8 +290,12 @@ function init() {
 
   // Keep in sync if storage changes from elsewhere
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "sync" && changes.tags) {
-      tags = Array.isArray(changes.tags.newValue) ? [...changes.tags.newValue] : [...DEFAULT_TAGS];
+    if (area === "sync" && (changes.tags || changes.tagPlacements)) {
+      if (changes.tags) {
+        tags = Array.isArray(changes.tags.newValue) ? [...changes.tags.newValue] : [...DEFAULT_TAGS];
+      }
+      tagPlacements = normalizeTagPlacements(tags,
+        changes.tagPlacements ? changes.tagPlacements.newValue : tagPlacements);
       render();
     }
   });
